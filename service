@@ -1,0 +1,36 @@
+# Setup variables
+EXEC=/usr/bin/jsvc
+JAVA_HOME=/usr/java/latest
+CLASS_PATH=lib/commons-daemon-1.0.13.jar:target/SimpleDaemon-1.0-SNAPSHOT.jar
+CLASS=com.sourcethought.simpledaemon.Main
+USER=cloudera
+PID=/tmp/simpledaemon.pid
+LOG_OUT=/tmp/simpledaemon.out
+LOG_ERR=/tmp/simpledaemon.err
+
+do_exec()
+{
+    $EXEC -home "$JAVA_HOME" -cp $CLASS_PATH -user $USER -outfile $LOG_OUT -errfile $LOG_ERR -pidfile $PID $1 $CLASS
+}
+
+case "$1" in
+    start)
+        do_exec
+            ;;
+    stop)
+        do_exec "-stop"
+            ;;
+    restart)
+        if [ -f "$PID" ]; then
+            do_exec "-stop"
+            do_exec
+        else
+            echo "service not running, will do nothing"
+            exit 1
+        fi
+            ;;
+    *)
+            echo "usage: daemon {start|stop|restart}" >&2
+            exit 3
+            ;;
+esac
