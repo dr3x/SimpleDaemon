@@ -10,10 +10,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.daemon.*;
+
 import org.apache.commons.cli.*;
 
 class EchoTask extends TimerTask {
+
     @Override
     public void run() {
         System.out.println(new Date() + " running ...");
@@ -24,63 +25,49 @@ class EchoTask extends TimerTask {
  *
  * @author cloudera
  */
-public class Main implements Daemon {
-  public static String version = "0.1";    
-    
-  private static Timer timer = null;
+public class Main {
 
-    public static void main(String[] args) {
+    public static String version = "0.1";
+
+    public static void main(String[] args) throws Exception {
         // setup command line options
         Options options = new Options();
         options.addOption("h", "help", false, "print this help screen");
-        
+
         // read command line options
         CommandLineParser parser = new PosixParser();
-        try {        
+        try {
             CommandLine cmdline = parser.parse(options, args);
-            
+
             if (cmdline.hasOption("help") || cmdline.hasOption("h")) {
                 System.out.println("SimpleDaemon Version " + Main.version);
 
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp("java -cp lib/*:target/SimpleDaemon-1.0-SNAPSHOT.jar com.sourcethought.simpledaemon.Main", options);
                 return;
-            }            
-            
+            }
+
+            final SimpleDaemon daemon = new SimpleDaemon();
+            daemon.start();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (daemon.isRunning()) {
+                        try {
+                            System.out.println("Shutting down daemon...");
+                            daemon.stop();
+                        } catch (Exception ex) {
+                            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            }));
+
         } catch (ParseException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        
-        
-        
-        
-        timer = new Timer();
-        timer.schedule(new EchoTask(), 0, 1000);
+
     }
 
-    @Override
-    public void init(DaemonContext dc) throws DaemonInitException, Exception {
-        System.out.println("initializing ...");
-    }
-
-    @Override
-    public void start() throws Exception {
-        System.out.println("starting ...");
-        main(null);
-    }
-
-    @Override
-    public void stop() throws Exception {
-        System.out.println("stopping ...");
-        if (timer != null) {
-            timer.cancel();
-        }
-    }
-
-    @Override
-    public void destroy() {
-        System.out.println("done.");
-    }    
-    
 }
